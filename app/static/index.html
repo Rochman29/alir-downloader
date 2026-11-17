@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101713">
+  <title>Alir — Video Downloader</title>
+  <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="Alir, beranda"><img src="/static/icon.svg" width="36" height="36" alt=""><span>alir<span class="brand-dot">.</span></span></a>
+    <div class="local-badge"><span class="status-dot"></span> Berjalan di komputermu</div>
+  </header>
+  <main>
+    <section class="intro">
+      <div class="eyebrow"><span class="tiny-line"></span> SIMPAN VIDEO, SESUAI KEBUTUHANMU</div>
+      <h1>Dari link.<br>Jadi <span>koleksi.</span></h1>
+      <p>Video favoritmu, dengan kualitas pilihanmu.<br>Tempel link YouTube dan biarkan Alir mengurus sisanya.</p>
+      <div class="source-tag"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="5" fill="currentColor"/><path d="m10 9 6 3-6 3Z" fill="#fff"/></svg> YouTube <span>tersedia sekarang</span></div>
+    </section>
+    <section class="workspace" aria-label="Unduh video">
+      <div class="panel-head"><span class="step-number">01</span><div><h2>Mulai dari sebuah link</h2><p>Video biasa maupun Shorts, semuanya bisa.</p></div><span class="corner-arrow" aria-hidden="true">↙</span></div>
+      <form id="inspect-form">
+        <label class="input-label" for="video-url">LINK VIDEO</label>
+        <div class="url-input"><span aria-hidden="true">↗</span><input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=..." required maxlength="2048" autocomplete="off" spellcheck="false"><button id="inspect-button" type="submit">Cek video <span aria-hidden="true">→</span></button></div>
+      </form>
+      <p id="form-error" class="error-box" role="alert" hidden></p>
+      <p id="inspect-status" class="helper" role="status">Kualitas yang muncul mengikuti ketersediaan video aslinya.</p>
+      <section id="video-result" class="video-result" aria-label="Pilihan kualitas video" hidden>
+        <div class="video-preview"><div class="thumbnail-wrap"><img id="thumbnail" alt="Thumbnail video" referrerpolicy="no-referrer"><span id="duration" class="duration"></span></div><div class="video-info"><span class="video-source">YOUTUBE / VIDEO</span><h3 id="video-title"></h3><p id="uploader"></p></div></div>
+        <div class="download-options"><div class="quality-field"><label class="input-label" for="quality">PILIH KUALITAS</label><select id="quality"></select></div><button id="download-button" class="primary-button" type="button">Unduh video <span aria-hidden="true">↓</span></button></div>
+        <p id="quality-note" class="helper"></p>
+        <p id="download-message" class="success-message" role="status" hidden></p>
+      </section>
+      <div class="panel-bottom"><span><span class="mini-check">✓</span> Video + audio otomatis</span><span><span class="mini-check">✓</span> Tersimpan secara lokal</span></div>
+    </section>
+    <section class="history" aria-labelledby="history-title">
+      <div class="history-heading"><div><span class="eyebrow">KOLEKSI LOKAL</span><h2 id="history-title">Unduhanmu <span id="job-count">0</span></h2></div><span id="connection-status" class="history-caption">Riwayat tersimpan di perangkat ini</span></div>
+      <div id="jobs" aria-live="polite"></div>
+      <div id="empty-state" class="empty-state"><div class="empty-icon" aria-hidden="true">↓</div><div><h3>Ruang untuk video pertamamu.</h3><p>Unduhan dan progresnya akan muncul di sini.</p></div><span class="empty-spark" aria-hidden="true">✳</span></div>
+    </section>
+    <section class="how-it-works" aria-label="Cara menggunakan"><div><span>01 / TEMPEL</span><p>Satu link untuk memulai.</p></div><div><span>02 / PILIH</span><p>Kualitas yang pas untukmu.</p></div><div><span>03 / SIMPAN</span><p>Siap ditonton kapan saja.</p></div></section>
+  </main>
+  <footer><span class="footer-brand">alir.</span><p>Unduh video milikmu atau yang diizinkan pemiliknya.</p><span class="version">LOCAL EDITION · V1.0</span></footer>
+</body>
+</html>
