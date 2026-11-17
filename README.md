@@ -1,8 +1,10 @@
 # Alir — Video Downloader
 
-Aplikasi web lokal sederhana untuk mengunduh satu video YouTube atau Shorts dengan pilihan kualitas yang tersedia. Dibangun dengan **Python + FastAPI + yt-dlp**, antarmuka HTML/CSS/JavaScript tanpa proses build frontend, dan SQLite untuk riwayat.
+Aplikasi sederhana untuk mengunduh satu video YouTube atau Shorts dengan pilihan kualitas yang tersedia. Bisa digunakan **lokal**, atau dengan **frontend/gateway di Vercel + worker Docker di server**. Dibangun dengan Python, FastAPI, yt-dlp, dan SQLite.
 
-![Tampilan Alir](docs/preview.jpg)
+**Mau import ke Vercel?** Ikuti [panduan Vercel + Docker](docs/deployment.md). Vercel menjalankan `index.py`; worker mengunduh dan menggabungkan video di luar function Vercel. Tidak ada batas durasi video atau ukuran berkas yang ditetapkan aplikasi. Backend tetap membutuhkan disk dan bandwidth yang cukup, serta akses YouTube yang diizinkan.
+
+![Alir mode online, gateway dan worker diuji secara lokal](docs/preview-online.jpg)
 
 ## Menjalankan di Windows
 
@@ -14,7 +16,7 @@ Atau dari PowerShell:
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements-worker.txt
 .\.venv\Scripts\python.exe run.py
 ```
 
@@ -34,14 +36,17 @@ Jika port 8000 sudah dipakai:
 
 Audio disertakan otomatis. Video dan audio terpisah digabung dengan FFmpeg tanpa mengubah kualitas. MP4 diprioritaskan jika tersedia; format lain dapat menghasilkan WebM atau MKV sesuai codec aslinya. Resolusi tidak ditingkatkan secara buatan. Ukuran dan persentase progres merupakan perkiraan; ETA berlaku untuk stream yang sedang diproses.
 
-Riwayat tersimpan di `data/downloads.sqlite3` dan menampilkan 100 unduhan terakhir. Jangan hapus folder `data` jika ingin mempertahankan riwayat. Berkas unduhan tetap di disk sampai dihapus sendiri. Unduhan yang belum selesai saat aplikasi ditutup akan ditandai gagal saat dijalankan ulang; mulai ulang lewat **Cek video** dan **Unduh video**. Hentikan server dengan Ctrl+C; server menunggu unduhan aktif selesai jika dimatikan secara normal.
+Riwayat tersimpan di `data/downloads.sqlite3` dan menampilkan 100 unduhan terakhir. Jangan hapus folder `data` jika ingin mempertahankan riwayat. Berkas unduhan tetap di disk sampai dihapus sendiri. Rencana unduhan disimpan di database; antrean yang terputus akan dijalankan kembali saat server dinyalakan, menggunakan berkas parsial yang masih tersedia jika yt-dlp mendukungnya. Unduhan lama dari versi 1.0 yang belum punya rencana tersimpan ditandai gagal dan harus dimulai ulang. Hentikan server dengan Ctrl+C.
+
+Pada mode online, antrean dan berkas disimpan di volume Docker. Riwayat dipisahkan menggunakan cookie sesi browser bertanda tangan. Browser lain tidak dapat melihat atau mengambil berkas sesimu. Menghapus cookie atau mengganti browser membuat sesi baru; belum ada akun untuk menyinkronkan riwayat. Batas antrean adalah 20 secara keseluruhan dan 3 unduhan aktif per sesi online.
 
 ## Batasan
 
 - Versi ini mendukung satu video publik per link; playlist, live yang masih berlangsung, video privat, DRM, dan konten yang mewajibkan login belum didukung.
 - Hasil bergantung pada akses YouTube dari jaringanmu. YouTube bisa membatasi IP, menolak akses, atau meminta login. Aplikasi menampilkan pesan kegagalan; tidak ada mekanisme untuk melewati pembatasan tersebut.
 - Pilihan kualitas berlaku 30 menit selama server yang sama masih berjalan. Periksa ulang link jika kedaluwarsa atau format berubah.
-- Aplikasi berjalan di `127.0.0.1` untuk penggunaan pribadi, tanpa login pengguna. Jangan ekspos langsung ke internet. Gunakan satu proses server; antrean berada di memori dan riwayat di SQLite.
+- Mode lokal berjalan di `127.0.0.1`. Untuk online gunakan gateway Vercel dan worker yang dilindungi token sesuai panduan deployment. Gunakan satu proses dan satu replica worker untuk satu volume SQLite.
+- Berkas besar ditransfer langsung dari worker ke browser dengan link bertanda tangan dan dukungan HTTP Range. File tidak dikirim melalui Vercel. Disk sementara saat penggabungan perlu sekitar 2–3 kali ukuran hasil. Tidak ada penghapusan otomatis; kelola ruang penyimpanan server.
 - Unduh video milikmu atau yang telah diizinkan pemiliknya.
 
 YouTube berubah secara berkala. Jika ekstraksi mulai gagal, perbarui yt-dlp di virtual environment, lalu jalankan ulang server:
@@ -56,6 +61,10 @@ Versi awal dipatok di `requirements.txt` agar instalasi dapat direproduksi. Sete
 
 ```text
 app/
+  gateway.py              # Gateway Vercel, cookie sesi, redirect berkas langsung
+  config.py               # Konfigurasi lokal/worker dari environment
+  security.py             # Tanda tangan sesi dan link unduhan
+  web.py                  # Halaman statis dan middleware HTTP
   main.py                 # Endpoint HTTP, validasi request, halaman statis
   service.py              # Antrean, progres, cache metadata, SQLite
   runtime.py              # Deteksi JavaScript dan FFmpeg bawaan
@@ -65,6 +74,10 @@ app/
     __init__.py           # Registrasi provider
   static/                 # Antarmuka tanpa framework frontend
 tests/                    # Pengujian API, antrean, format, dan persistensi
+index.py                  # Entrypoint Vercel (tanpa yt-dlp/SQLite)
+Dockerfile                # Worker Python + Node.js + FFmpeg
+compose.yaml              # Volume persisten dan proxy HTTPS opsional
+vercel.json               # Konfigurasi import Vercel
 run.py                    # Server lokal
 start.bat                 # Peluncur Windows
 ```
@@ -81,4 +94,4 @@ Endpoint utama: `POST /api/inspect`, `POST /api/downloads`, `GET /api/downloads`
 node --check app/static/app.js
 ```
 
-Tes memakai provider tiruan untuk memeriksa alur API → antrean → berkas → riwayat tanpa bergantung pada jaringan YouTube. Pengujian unduhan YouTube sesungguhnya dilakukan terpisah karena akses dipengaruhi IP, jaringan, dan perubahan YouTube.
+Tes memakai provider tiruan untuk memeriksa alur API → antrean → berkas → riwayat tanpa bergantung pada jaringan YouTube, serta gateway → worker → redirect berkas >4,5 MB, HTTP Range, isolasi browser, dan pemulihan antrean. Pengujian FFmpeg menggunakan berkas audio-video nyata sintetis. Pengujian unduhan YouTube sesungguhnya dilakukan terpisah karena akses dipengaruhi IP, jaringan, dan perubahan YouTube. Lihat [catatan verifikasi](docs/verification.md).

@@ -1,0 +1,52 @@
+services:
+  worker:
+    build: .
+    init: true
+    restart: unless-stopped
+    environment:
+      ALIR_MODE: worker
+      ALIR_WORKER_TOKEN: ${ALIR_WORKER_TOKEN:?Set ALIR_WORKER_TOKEN in .env.worker}
+      ALIR_PUBLIC_WORKER_URL: ${ALIR_PUBLIC_WORKER_URL:?Set the public HTTPS worker URL}
+      ALIR_ALLOWED_HOSTS: ${ALIR_ALLOWED_HOSTS:?Set the exact worker hostname}
+      ALIR_STORAGE_DIR: /storage
+      ALIR_DOWNLOAD_LINK_TTL_SECONDS: ${ALIR_DOWNLOAD_LINK_TTL_SECONDS:-3600}
+      ALIR_MIN_FREE_GB: ${ALIR_MIN_FREE_GB:-1}
+    ports:
+      - "${ALIR_BIND_ADDRESS:-127.0.0.1}:${ALIR_PORT:-8000}:8000"
+    volumes:
+      - alir_storage:/storage
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # Optional public HTTPS endpoint, enabled only with --profile public.
+  proxy:
+    image: caddy:2
+    profiles: [public]
+    restart: unless-stopped
+    depends_on:
+      worker:
+        condition: service_healthy
+    environment:
+      ALIR_WORKER_DOMAIN: ${ALIR_WORKER_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  alir_storage:
+  caddy_data:
+  caddy_config:

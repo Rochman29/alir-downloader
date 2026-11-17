@@ -6,7 +6,7 @@ if not exist ".venv\Scripts\python.exe" (
 )
 ".venv\Scripts\python.exe" -c "import fastapi, uvicorn, yt_dlp, yt_dlp_ejs, imageio_ffmpeg" >nul 2>&1
 if errorlevel 1 (
-  ".venv\Scripts\python.exe" -m pip install -r requirements.txt
+  ".venv\Scripts\python.exe" -m pip install -r requirements-worker.txt
   if errorlevel 1 goto :failed
 )
 echo.

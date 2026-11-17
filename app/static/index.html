@@ -12,7 +12,7 @@
 <body>
   <header class="site-header">
     <a class="brand" href="/" aria-label="Alir, beranda"><img src="/static/icon.svg" width="36" height="36" alt=""><span>alir<span class="brand-dot">.</span></span></a>
-    <div class="local-badge"><span class="status-dot"></span> Berjalan di komputermu</div>
+    <div class="local-badge"><span class="status-dot"></span><span id="location-badge">Menghubungkan…</span></div>
   </header>
   <main>
     <section class="intro">
@@ -25,7 +25,7 @@
       <div class="panel-head"><span class="step-number">01</span><div><h2>Mulai dari sebuah link</h2><p>Video biasa maupun Shorts, semuanya bisa.</p></div><span class="corner-arrow" aria-hidden="true">↙</span></div>
       <form id="inspect-form">
         <label class="input-label" for="video-url">LINK VIDEO</label>
-        <div class="url-input"><span aria-hidden="true">↗</span><input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=..." required maxlength="2048" autocomplete="off" spellcheck="false"><button id="inspect-button" type="submit">Cek video <span aria-hidden="true">→</span></button></div>
+        <div class="url-input"><span aria-hidden="true">↗</span><input type="url" id="video-url" placeholder="https://www.youtube.com/watch?v=..." required maxlength="2048" autocomplete="off" spellcheck="false"><button id="inspect-button" type="submit" disabled>Cek video <span aria-hidden="true">→</span></button></div>
       </form>
       <p id="form-error" class="error-box" role="alert" hidden></p>
       <p id="inspect-status" class="helper" role="status">Kualitas yang muncul mengikuti ketersediaan video aslinya.</p>
@@ -35,15 +35,15 @@
         <p id="quality-note" class="helper"></p>
         <p id="download-message" class="success-message" role="status" hidden></p>
       </section>
-      <div class="panel-bottom"><span><span class="mini-check">✓</span> Video + audio otomatis</span><span><span class="mini-check">✓</span> Tersimpan secara lokal</span></div>
+      <div class="panel-bottom"><span><span class="mini-check">✓</span> Video + audio otomatis</span><span><span class="mini-check">✓</span><span id="storage-note">Siap disimpan ke perangkatmu</span></span></div>
     </section>
     <section class="history" aria-labelledby="history-title">
-      <div class="history-heading"><div><span class="eyebrow">KOLEKSI LOKAL</span><h2 id="history-title">Unduhanmu <span id="job-count">0</span></h2></div><span id="connection-status" class="history-caption">Riwayat tersimpan di perangkat ini</span></div>
+      <div class="history-heading"><div><span id="collection-label" class="eyebrow">KOLEKSI VIDEO</span><h2 id="history-title">Unduhanmu <span id="job-count">0</span></h2></div><span id="connection-status" class="history-caption">Menghubungkan ke layanan unduh…</span></div>
       <div id="jobs" aria-live="polite"></div>
       <div id="empty-state" class="empty-state"><div class="empty-icon" aria-hidden="true">↓</div><div><h3>Ruang untuk video pertamamu.</h3><p>Unduhan dan progresnya akan muncul di sini.</p></div><span class="empty-spark" aria-hidden="true">✳</span></div>
     </section>
     <section class="how-it-works" aria-label="Cara menggunakan"><div><span>01 / TEMPEL</span><p>Satu link untuk memulai.</p></div><div><span>02 / PILIH</span><p>Kualitas yang pas untukmu.</p></div><div><span>03 / SIMPAN</span><p>Siap ditonton kapan saja.</p></div></section>
   </main>
-  <footer><span class="footer-brand">alir.</span><p>Unduh video milikmu atau yang diizinkan pemiliknya.</p><span class="version">LOCAL EDITION · V1.0</span></footer>
+  <footer><span class="footer-brand">alir.</span><p>Unduh video milikmu atau yang diizinkan pemiliknya.</p><span id="edition" class="version">ALIR · V1.1</span></footer>
 </body>
 </html>

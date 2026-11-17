@@ -4,6 +4,23 @@ let inspecting = false;
 let submitting = false;
 let pollTimer;
 let previousJobs = "";
+let storageMode = "local";
+let serviceReady = false;
+
+function historyCaption() {
+  return storageMode === "server" ? "Riwayat untuk sesi browser ini" : "Riwayat tersimpan di perangkat ini";
+}
+
+function applyHealth(health) {
+  storageMode = health.mode || "local";
+  serviceReady = Boolean(health.ready);
+  $("location-badge").textContent = storageMode === "server" ? "Terhubung ke server" : "Berjalan di komputermu";
+  $("storage-note").textContent = storageMode === "server" ? "Simpan ke perangkatmu" : "Tersimpan secara lokal";
+  $("collection-label").textContent = storageMode === "server" ? "KOLEKSI SESIMU" : "KOLEKSI LOKAL";
+  $("edition").textContent = `${storageMode === "server" ? "ONLINE" : "LOCAL"} EDITION · V1.1`;
+  $("inspect-button").disabled = !serviceReady || inspecting;
+  if (!serviceReady) showError(storageMode === "server" ? "Layanan unduh belum siap. Coba lagi sebentar." : "Node.js atau Deno belum ditemukan. Pasang Node.js 22+ lalu jalankan ulang aplikasi.");
+}
 
 function bytes(value) {
   if (!value || !Number.isFinite(value)) return "Ukuran belum tersedia";
@@ -21,7 +38,9 @@ async function api(path, body) {
   const response = await fetch(path, body ? {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
   } : { cache: "no-store" });
-  const data = await response.json();
+  let data;
+  try { data = await response.json(); }
+  catch { throw new Error("Layanan unduh memberikan respons yang tidak valid. Coba lagi sebentar."); }
   if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : "Data tidak valid. Periksa inputmu.");
   return data;
 }
@@ -33,7 +52,8 @@ function showError(message) {
 
 function updateNote() {
   const quality = video?.qualities.find((q) => q.id === $("quality").value);
-  $("quality-note").textContent = quality ? `${quality.extension.toUpperCase()} · ${quality.estimated_bytes ? `Perkiraan ${bytes(quality.estimated_bytes)}` : "Ukuran diketahui saat mengunduh"} · Sudah termasuk audio. Disimpan di folder downloads proyek.` : "";
+  const storage = storageMode === "server" ? "Saat selesai, klik Simpan berkas untuk mengunduh ke perangkatmu." : "Disimpan di folder downloads proyek.";
+  $("quality-note").textContent = quality ? `${quality.extension.toUpperCase()} · ${quality.estimated_bytes ? `Perkiraan ${bytes(quality.estimated_bytes)}` : "Ukuran diketahui saat mengunduh"} · Sudah termasuk audio. ${storage}` : "";
 }
 
 $("video-url").addEventListener("input", () => {
@@ -42,7 +62,7 @@ $("video-url").addEventListener("input", () => {
 $("quality").addEventListener("change", updateNote);
 $("inspect-form").addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (inspecting) return;
+  if (inspecting || !serviceReady) return;
   inspecting = true;
   video = null;
   showError("");
@@ -73,7 +93,7 @@ $("inspect-form").addEventListener("submit", async (event) => {
     $("inspect-status").textContent = "Coba link video YouTube yang lain atau periksa kembali koneksimu.";
   } finally {
     inspecting = false;
-    $("inspect-button").disabled = false;
+    $("inspect-button").disabled = !serviceReady;
     $("video-url").disabled = false;
     $("inspect-button").textContent = "Cek video →";
   }
@@ -87,7 +107,9 @@ $("download-button").addEventListener("click", async () => {
   $("download-message").hidden = true;
   try {
     await api("/api/downloads", { inspection_id: video.inspection_id, quality_id: $("quality").value });
-    $("download-message").textContent = "Masuk antrean! Hasil akan tersimpan otomatis di folder downloads. Kamu juga bisa menyimpannya lewat tombol Simpan berkas.";
+    $("download-message").textContent = storageMode === "server"
+      ? "Masuk antrean! Proses tetap berjalan walau halaman ditutup. Saat selesai, klik Simpan berkas untuk mengunduh ke perangkatmu."
+      : "Masuk antrean! Hasil tersimpan otomatis di folder downloads. Kamu juga bisa menyimpannya lewat tombol Simpan berkas.";
     $("download-message").hidden = false;
     clearTimeout(pollTimer);
     await refreshJobs();
@@ -133,7 +155,9 @@ function renderJob(job) {
   if (job.file_url) {
     const link = element("a", "file-link", "Simpan berkas ↓");
     link.href = job.file_url;
-    link.setAttribute("download", "");
+    // The online gateway redirects to a signed URL on the worker; cross-origin downloads
+    // use Content-Disposition from the worker instead of the download attribute.
+    if (storageMode === "local") link.setAttribute("download", "");
     row.append(link);
   } else if (["downloading", "processing"].includes(job.status) && job.progress > 0) {
     row.append(element("span", "job-percent", `~${Math.floor(job.progress)}%`));
@@ -152,7 +176,7 @@ async function refreshJobs() {
     }
     $("empty-state").hidden = jobs.length > 0;
     $("job-count").textContent = jobs.length;
-    $("connection-status").textContent = "Riwayat tersimpan di perangkat ini";
+    $("connection-status").textContent = historyCaption();
     if (!jobs.some((job) => ["queued", "downloading", "processing"].includes(job.status))) delay = 6000;
   } catch {
     $("connection-status").textContent = "Koneksi terputus. Mencoba kembali…";
@@ -162,7 +186,16 @@ async function refreshJobs() {
   pollTimer = setTimeout(refreshJobs, delay);
 }
 
-api("/api/health").then((health) => {
-  if (!health.ready) showError("Node.js atau Deno belum ditemukan. Pasang Node.js 22+ lalu jalankan ulang aplikasi.");
-}).catch(() => showError("Server belum terhubung. Pastikan aplikasi masih berjalan."));
-refreshJobs();
+async function boot() {
+  try {
+    // Establish one signed browser session before sending concurrent API requests.
+    applyHealth(await api("/api/health"));
+    await refreshJobs();
+  } catch (error) {
+    $("location-badge").textContent = "Belum terhubung";
+    $("connection-status").textContent = "Layanan unduh belum tersedia";
+    showError(error.message === "Failed to fetch" ? "Server belum terhubung. Coba lagi sebentar." : error.message);
+    setTimeout(boot, 10000);
+  }
+}
+boot();

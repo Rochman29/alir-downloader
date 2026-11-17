@@ -149,6 +149,7 @@ class YouTubeProvider:
             "format": quality.format_selector,
             "outtmpl": str(directory / "%(title).120B [%(id)s].%(ext)s"),
             "windowsfilenames": True, "overwrites": False,
+            "continuedl": True,
             "merge_output_format": quality.extension,
             "progress_hooks": [hook], "postprocessor_hooks": [postprocess],
         }

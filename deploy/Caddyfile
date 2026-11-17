@@ -1,0 +1,3 @@
+{$ALIR_WORKER_DOMAIN:localhost} {
+    reverse_proxy worker:8000
+}
